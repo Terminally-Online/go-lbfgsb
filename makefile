@@ -50,9 +50,9 @@ build-linux-amd64:
 	ld -r -o lbfgsb_linux_amd64.syso \
 		src/lbfgsb.o src/blas.o src/linpack.o src/timer.o \
 		src/lbfgsb__entry.o src/lbfgsb_c.o \
-		/usr/lib/x86_64-linux-gnu/libgfortran.a \
-		/usr/lib/x86_64-linux-gnu/libquadmath.a \
-		/usr/lib/gcc/x86_64-linux-gnu/*/libgcc.a
+		$$(find /usr/lib/gcc -name 'libgfortran.a' | head -1) \
+		$$(find /usr/lib/gcc -name 'libquadmath.a' | head -1) \
+		$$(find /usr/lib/gcc -name 'libgcc.a' | head -1)
 	rm -f src/*.o src/*.mod
 	@echo "Built lbfgsb_linux_amd64.syso"
 
