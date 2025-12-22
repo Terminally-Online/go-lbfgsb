@@ -1,15 +1,10 @@
-# Copyright (c) 2013 Aubrey Barnard.  This is free software.  See
-# LICENSE.txt for details.
-
-# General
+# Editor files
 *~
-build
 
 # Compilation intermediates
-*.o
+src/*.o
+src/*.mod
 lbfgsb*.mod
 
-# Programs, libraries
+# Static library (not the .syso)
 liblbfgsb.a
-lbfgsb.syso
-example/example

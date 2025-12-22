@@ -1,3 +1,3 @@
-module github.com/idavydov/go-lbfgsb
+module github.com/Terminally-Online/go-lbfgsb
 
-go 1.17
+go 1.21

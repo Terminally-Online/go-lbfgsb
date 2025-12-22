@@ -1,72 +1,60 @@
-# Copyright (c) 2013 Aubrey Barnard.  This is free software.  See
-# LICENSE.txt for details.
+.PHONY: all clean build-darwin-arm64 build-darwin-amd64 build-linux-amd64
 
-# Builds the Fortran L-BFGS-B code into a library for use by Go
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
 
-# Setup for make
-.PHONY: all clean
+all:
+ifeq ($(UNAME_S),Darwin)
+ifeq ($(UNAME_M),arm64)
+	$(MAKE) build-darwin-arm64
+else
+	$(MAKE) build-darwin-amd64
+endif
+else
+	$(MAKE) build-linux-amd64
+endif
 
-# Configuration and options
+build-darwin-arm64:
+	@echo "Building for darwin/arm64..."
+	cd src && gfortran -c -O2 -fPIC lbfgsb.f blas.f linpack.f timer.f
+	cd src && gfortran -c -O2 -fPIC lbfgsb__entry.f90
+	cd src && gfortran -c -O2 -fPIC lbfgsb_c.f90
+	ld -r -o lbfgsb_darwin_arm64.syso \
+		src/lbfgsb.o src/blas.o src/linpack.o src/timer.o \
+		src/lbfgsb__entry.o src/lbfgsb_c.o \
+		$$(brew --prefix gcc)/lib/gcc/current/libgfortran.a \
+		$$(brew --prefix gcc)/lib/gcc/current/libquadmath.a \
+		$$(brew --prefix gcc)/lib/gcc/current/gcc/aarch64-apple-darwin*/*/libgcc.a
+	rm -f src/*.o src/*.mod
+	@echo "Built lbfgsb_darwin_arm64.syso"
 
-# Compiler (I'm only worrying about GCC for now since it supports
-# Fortran, C, and Go.)
-compiler := gcc-11
-# General compiler options, e.g. -O -g
-compile_options := -g
-# General compiler warnings
-compile_warnings := -Wall -Wextra
-# Fortran compiler options.  Disallow implicit variables.
-compile_options_fortran := -fimplicit-none -finit-local-zero
+build-darwin-amd64:
+	@echo "Building for darwin/amd64..."
+	cd src && gfortran -c -O2 -fPIC lbfgsb.f blas.f linpack.f timer.f
+	cd src && gfortran -c -O2 -fPIC lbfgsb__entry.f90
+	cd src && gfortran -c -O2 -fPIC lbfgsb_c.f90
+	ld -r -o lbfgsb_darwin_amd64.syso \
+		src/lbfgsb.o src/blas.o src/linpack.o src/timer.o \
+		src/lbfgsb__entry.o src/lbfgsb_c.o \
+		$$(brew --prefix gcc)/lib/gcc/current/libgfortran.a \
+		$$(brew --prefix gcc)/lib/gcc/current/libquadmath.a \
+		$$(brew --prefix gcc)/lib/gcc/current/gcc/x86_64-apple-darwin*/*/libgcc.a
+	rm -f src/*.o src/*.mod
+	@echo "Built lbfgsb_darwin_amd64.syso"
 
-# Compilation
+build-linux-amd64:
+	@echo "Building for linux/amd64..."
+	cd src && gfortran -c -O2 -fPIC lbfgsb.f blas.f linpack.f timer.f
+	cd src && gfortran -c -O2 -fPIC lbfgsb__entry.f90
+	cd src && gfortran -c -O2 -fPIC lbfgsb_c.f90
+	ld -r -o lbfgsb_linux_amd64.syso \
+		src/lbfgsb.o src/blas.o src/linpack.o src/timer.o \
+		src/lbfgsb__entry.o src/lbfgsb_c.o \
+		/usr/lib/x86_64-linux-gnu/libgfortran.a \
+		/usr/lib/x86_64-linux-gnu/libquadmath.a \
+		/usr/lib/gcc/x86_64-linux-gnu/*/libgcc.a
+	rm -f src/*.o src/*.mod
+	@echo "Built lbfgsb_linux_amd64.syso"
 
-# Build the library by default
-all: liblbfgsb.a lbfgsb.syso
-
-# FORTRAN 77 compilation.  The original L-BFGS-B makefile adds bounds
-# checking code with '-fbounds-check', so do that here in case it's
-# important.  I have checked the code for all the warnings about float
-# (in)equality and unused parameters.  They seem to be fine, so I have
-# disabled those warnings (which were only enabled by -Wextra anyway).
-
-# Fortran 2003 compilation; using f90 extension allows Go (v1.7 or later) recognize the source
-%.o: %.f90
-	$(compiler) $(compile_options) $(compile_warnings) $(compile_options_fortran) -fbounds-check -std=f2003 -c $< -o $@
-
-%.o: %.f
-	$(compiler) $(compile_options) $(compile_warnings) $(compile_options_fortran) -fbounds-check -std=legacy -Wno-compare-reals -Wno-unused-parameter -c $< -o $@
-
-
-# Dependencies
-
-# Original L-BFGS-B
-lbfgsb/lbfgsb.o: lbfgsb/blas.o lbfgsb/linpack.o lbfgsb/timer.o
-# The Linpack parts do not appear to depend on each other
-
-# Go-Fortran L-BFGS-B interface
-lbfgsb__entry.o: lbfgsb.o
-lbfgsb_c.o: lbfgsb__entry.o
-
-# Libraries and executables
-
-# Object files needed for the libraries
-libObjs := lbfgsb_c.o lbfgsb__entry.o lbfgsb.o blas.o linpack.o timer.o
-
-# Library
-liblbfgsb.a: $(libObjs)
-	ar cr $@ $^
-
-# Build a "library" for Go, a combined object with the same contents as
-# the static library.  Go can link in this type of object automatically,
-# because it's the same type of object as results from a single C
-# compile.  In other words, it is as if all the individual object files
-# were concatenated: 'cat $^ > $@'.  This is called partial link or
-# incremental linking.
-lbfgsb.syso: $(libObjs)
-	ld --relocatable $^ -o $@
-
-# Commands
-
-# Delete derived
 clean:
-	@rm -f *.o lbfgsb*.mod *~ *.o liblbfgsb.a lbfgsb.syso
+	rm -f src/*.o src/*.mod *.syso

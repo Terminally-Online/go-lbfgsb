@@ -21,8 +21,11 @@ package lbfgsb
 // 1.7 version of Go.  I think that everything should work properly
 // with the defaul CGO compilation flags.  If you run into issues you
 // can use CGO_FFLAGS environment variable.
+//
+// Fortran runtime (gfortran, quadmath) is statically linked into the
+// platform-specific .syso files, so no external LDFLAGS are needed.
 
-// #cgo LDFLAGS: -lgfortran -lquadmath -lm
+// #cgo LDFLAGS: -lm
 // #include "lbfgsb_go_interface.h"
 import "C"
 
