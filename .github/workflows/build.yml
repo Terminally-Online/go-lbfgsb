@@ -35,7 +35,9 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y gfortran libgfortran-13-dev
+          # gfortran pulls in the matching libgfortran-<N>-dev static
+          # libs on both jammy (gcc-11) and noble (gcc-13).
+          sudo apt-get install -y gfortran
 
       - name: Build static library
         run: make build-${{ matrix.target }}
