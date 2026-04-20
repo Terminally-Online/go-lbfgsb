@@ -1,4 +1,4 @@
-.PHONY: all clean build-darwin-arm64 build-darwin-amd64 build-linux-amd64
+.PHONY: all clean build-darwin-arm64 build-darwin-amd64 build-linux-amd64 build-linux-arm64
 
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -11,7 +11,11 @@ else
 	$(MAKE) build-darwin-amd64
 endif
 else
+ifeq ($(UNAME_M),aarch64)
+	$(MAKE) build-linux-arm64
+else
 	$(MAKE) build-linux-amd64
+endif
 endif
 
 build-darwin-arm64:
@@ -55,6 +59,22 @@ build-linux-amd64:
 		$$(find /usr/lib/gcc -name 'libgcc.a' | head -1)
 	rm -f src/*.o src/*.mod
 	@echo "Built lbfgsb_linux_amd64.syso"
+
+# NOTE: no libquadmath on linux/arm64 — __float128 is an x86-only GCC
+# extension and Ubuntu doesn't ship libquadmath for aarch64. lbfgsb
+# itself is double-precision, so dropping the lib is correct.
+build-linux-arm64:
+	@echo "Building for linux/arm64..."
+	cd src && gfortran -c -O2 -fPIC lbfgsb.f blas.f linpack.f timer.f
+	cd src && gfortran -c -O2 -fPIC lbfgsb__entry.f90
+	cd src && gfortran -c -O2 -fPIC lbfgsb_c.f90
+	ld -r -o lbfgsb_linux_arm64.syso \
+		src/lbfgsb.o src/blas.o src/linpack.o src/timer.o \
+		src/lbfgsb__entry.o src/lbfgsb_c.o \
+		$$(find /usr/lib/gcc -name 'libgfortran.a' | head -1) \
+		$$(find /usr/lib/gcc -name 'libgcc.a' | head -1)
+	rm -f src/*.o src/*.mod
+	@echo "Built lbfgsb_linux_arm64.syso"
 
 clean:
 	rm -f src/*.o src/*.mod *.syso
